@@ -78,7 +78,7 @@ This folder stores the serialized prediction models used by the application.
 
 #### `models/model.pkl`
 
-The primary serialized model. If it contains an object with a `predict()` method, the application sends the IQ and CGPA values to that model.
+An optional serialized model artifact retained in the repository. The current application intentionally does not use unsupported model objects from this file because the previous artifact produced incorrect results for low inputs. The loader accepts only the documented threshold-model dictionary and otherwise uses `fallback_model.pkl`.
 
 #### `models/fallback_model.pkl`
 
@@ -256,17 +256,6 @@ vercel --prod
 Vercel installs the packages from `requirements.txt`, loads `api/index.py`, and routes requests according to `vercel.json`.
 
 ## Model Behavior
-
-When a scikit-learn-compatible model is loaded, the application calls its `predict()` method with the two features in this order:
-
-```text
-[IQ, CGPA]
-```
-
-The result is interpreted as:
-
-- `1` -> `Placed`
-- any other prediction -> `Not Placed`
 
 The fallback model uses the following rule:
 

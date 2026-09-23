@@ -19,21 +19,21 @@ def train_model():
 def load_model():
     if MODEL_PATH.exists():
         with open(MODEL_PATH, "rb") as f:
-            return pickle.load(f)
+            model = pickle.load(f)
+        if isinstance(model, dict):
+            return model
 
     if FALLBACK_MODEL_PATH.exists():
         with open(FALLBACK_MODEL_PATH, "rb") as f:
-            return pickle.load(f)
+            fallback_model = pickle.load(f)
+        if isinstance(fallback_model, dict):
+            return fallback_model
 
     return train_model()
 
 
 def predict_placement(iq, cgpa):
     model = load_model()
-
-    if hasattr(model, "predict"):
-        prediction = model.predict([[iq, cgpa]])[0]
-        return "Placed" if prediction == 1 else "Not Placed"
 
     iq_threshold = model["threshold_iq"]
     cgpa_threshold = model["threshold_cgpa"]
