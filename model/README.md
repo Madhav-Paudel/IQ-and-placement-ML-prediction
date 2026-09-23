@@ -1,135 +1,198 @@
-# Placement Predictor
+# IQ and Placement Prediction
 
-A beginner-friendly machine learning deployment project that predicts whether a student is likely to be placed using IQ and CGPA as input features.
+A Flask-based machine learning web application that estimates whether a student is likely to be placed using IQ and CGPA values. The project demonstrates a complete beginner-friendly workflow: loading a serialized model, accepting browser input, returning a prediction, testing the core logic, and deploying the application to Vercel.
 
-This project was created while learning from CampusX YouTube tutorials and following the CampusX **100 Days of Machine Learning** series. It is an educational project built to practice the complete flow from defining a prediction problem to serving a model through a web application and deploying it with Vercel.
+> **Educational disclaimer:** This application is intended for learning and demonstration only. IQ and CGPA are not sufficient to determine a person's placement outcome and should not be used for real recruitment or academic decisions.
 
-> **Disclaimer:** This project is for learning and demonstration purposes only. Placement outcomes depend on many factors and cannot be reliably determined from IQ and CGPA alone.
+## Project Overview
+
+The application provides a web form where a user enters:
+
+- **IQ:** the student's intelligence quotient value
+- **CGPA:** the student's cumulative grade point average
+
+When the form is submitted, Flask receives the values, converts them to numbers, loads the available prediction model, and displays either `Placed` or `Not Placed`.
+
+The application supports two model modes:
+
+1. It first attempts to load the trained model in `models/model.pkl`.
+2. If that model is unavailable, it loads `models/fallback_model.pkl`.
+3. If neither file exists, it creates a simple fallback model automatically.
 
 ## Features
 
-- Simple browser-based prediction form
-- Flask web application
-- Accepts IQ and CGPA values
-- Supports loading a serialized model from `model.pkl`
-- Creates and uses a fallback model when a trained model file is unavailable
-- Basic automated tests with pytest
-- Vercel deployment configuration included
+- Browser-based prediction form
+- Flask backend with GET and POST handling
+- Serialized model loading with a fallback option
+- Input conversion and basic invalid-input handling
+- Separate HTML templates and CSS assets
+- Automated tests using pytest
+- Vercel serverless deployment configuration
+- Clear project structure suitable for further machine learning development
 
-## Project Structure
+## Directory and File Guide
 
 ```text
 model/
-├── app.py                 # Main Flask application and prediction logic
-├── models/
-│   ├── model.pkl          # Optional trained model file
-│   └── fallback_model.pkl # Fallback model generated automatically
-├── templates/
-│   └── index.html         # Prediction form
-├── static/
-│   └── style.css          # Application styles
-├── api/
-│   └── index.py           # Vercel entry point
-└── tests/
-    └── test_app.py        # Prediction tests
-├── requirements.txt       # Python dependencies
-├── .gitignore             # Files excluded from Git
-├── README.md              # Project documentation
-└── vercel.json            # Vercel deployment configuration
+|-- api/
+|   `-- index.py
+|-- models/
+|   |-- model.pkl
+|   `-- fallback_model.pkl
+|-- static/
+|   `-- style.css
+|-- templates/
+|   `-- index.html
+|-- tests/
+|   `-- test_app.py
+|-- app.py
+|-- requirements.txt
+|-- vercel.json
+|-- .gitignore
+`-- README.md
 ```
 
-## How This Project Was Created
+### `app.py`
 
-The project followed a practical, step-by-step learning workflow based on the CampusX tutorials and the 100 Days of Machine Learning series:
+The main Flask application.
 
-1. **Learned the machine learning workflow**
-   - Understood how a real-world problem can be converted into a prediction problem.
-   - Identified student placement as the target use case.
-   - Selected IQ and CGPA as the input features and placement status as the prediction output.
+- Creates the Flask application instance.
+- Defines the `/` route for displaying and processing the form.
+- Reads IQ and CGPA values from the submitted form.
+- Calls `predict_placement()` to produce a prediction.
+- Loads the trained or fallback model through `load_model()`.
+- Renders `templates/index.html` with the prediction result.
+- Starts a local development server when executed directly.
 
-2. **Defined the prediction behavior**
-   - Created the `predict_placement(iq, cgpa)` function.
-   - Used a simple fallback rule that predicts `Placed` when IQ is at least `95` and CGPA is at least `7.0`.
-   - Returned `Not Placed` when either threshold is not met.
+### `api/`
 
-3. **Added model loading support**
-   - Implemented support for an optional trained model stored in `models/model.pkl`.
-   - If that file is unavailable, the application checks for `models/fallback_model.pkl`.
-   - If neither file exists, the application generates the fallback model automatically using Python's `pickle` module.
+This folder contains the Vercel serverless entry point.
 
-4. **Built the Flask application**
-   - Created a Flask app with a home route at `/`.
-   - Added a form for entering IQ and CGPA.
-   - Added POST request handling to process user input.
-   - Added validation so invalid numeric input produces a clear message.
-   - Displayed the prediction result directly in the browser.
+#### `api/index.py`
 
-5. **Prepared the application for deployment**
-   - Created `api/index.py` as the serverless entry point.
-   - Added `vercel.json` to route incoming requests to the Flask application.
-   - Added the required dependencies to `requirements.txt`.
-   - Added separate template and static directories for maintainable frontend files.
+Imports the Flask application from `app.py` so Vercel can serve it as a Python function. The file also supports local execution through Flask's development server.
 
-6. **Added basic testing**
-   - Created pytest tests for both higher and lower student input values.
-   - Verified that the prediction function returns one of the supported results: `Placed` or `Not Placed`.
+### `models/`
 
-## Technologies Used
+This folder stores the serialized prediction models used by the application.
 
-- Python
-- Flask
-- Pytest
-- Pickle
-- Vercel
-- HTML and CSS
+#### `models/model.pkl`
 
-## Local Setup
+The primary serialized model. If it contains an object with a `predict()` method, the application sends the IQ and CGPA values to that model.
+
+#### `models/fallback_model.pkl`
+
+A lightweight fallback model stored with Python's `pickle` module. It contains the default thresholds used when a trained model is not available:
+
+- IQ threshold: `95`
+- CGPA threshold: `7.0`
+
+The fallback predicts `Placed` when both values meet or exceed their thresholds. It predicts `Not Placed` otherwise.
+
+### `templates/`
+
+This folder contains Flask's server-rendered HTML templates.
+
+#### `templates/index.html`
+
+The application's main page. It contains the IQ and CGPA input fields, the submission form, and the area where Flask displays the prediction result.
+
+### `static/`
+
+This folder contains browser assets served by Flask.
+
+#### `static/style.css`
+
+Defines the visual presentation of the application, including layout, typography, form controls, buttons, and prediction-result styling.
+
+### `tests/`
+
+This folder contains automated tests.
+
+#### `tests/test_app.py`
+
+Imports the prediction function and checks that it returns one of the supported prediction labels for higher and lower example inputs. These tests focus on the core prediction behavior rather than browser rendering.
+
+### `requirements.txt`
+
+Lists the Python packages required by the application:
+
+- `Flask` for the web server and request handling
+- `pytest` for automated tests
+- `scikit-learn` for compatibility with serialized machine learning models
+
+### `vercel.json`
+
+Configures Vercel to use `api/index.py` as the Python serverless function and route incoming requests to that function.
+
+### `.gitignore`
+
+Prevents generated files and local-only resources from being committed, including Python cache files, pytest cache files, virtual environments, and IDE settings.
+
+### `README.md`
+
+This document explains the project, its architecture, local setup, testing process, deployment process, and known limitations.
+
+## Application Flow
+
+```text
+User opens the application
+          |
+          v
+Flask renders templates/index.html
+          |
+          v
+User submits IQ and CGPA
+          |
+          v
+The / route validates and converts the input
+          |
+          v
+load_model() loads model.pkl or a fallback model
+          |
+          v
+predict_placement() calculates the result
+          |
+          v
+Flask renders Placed or Not Placed
+```
+
+## Local Installation
 
 ### Prerequisites
 
 - Python 3.9 or newer
 - `pip`
-- Git, if you want to clone the project
+- Git, if cloning the repository
 
-### Installation
+### Windows PowerShell
 
-1. Open a terminal in the `model` directory.
+Open PowerShell in this project directory:
 
-2. Create a virtual environment:
+```powershell
+cd "C:\path\to\IQ-and-placement-ML-prediction"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-   ```bash
-   python -m venv venv
-   ```
+If PowerShell prevents script activation, run this only for the current terminal session and then activate the environment again:
 
-3. Activate the virtual environment.
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```
 
-   On Windows PowerShell:
+### macOS or Linux
 
-   ```powershell
-   .\venv\Scripts\Activate.ps1
-   ```
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-   On macOS or Linux:
-
-   ```bash
-   source venv/bin/activate
-   ```
-
-4. Install the dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   If you want the application to load the included `models/model.pkl`, install a compatible scikit-learn version as well:
-
-   ```bash
-   pip install scikit-learn==1.6.1
-   ```
-
-   Without scikit-learn, remove or rename `models/model.pkl` to use the built-in fallback model instead.
-
-## Run the Application
+## Run Locally
 
 Start the Flask development server:
 
@@ -137,84 +200,104 @@ Start the Flask development server:
 python app.py
 ```
 
-Open the following URL in your browser:
+Open the application at:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-Enter an IQ value and CGPA, then select **Predict** to see the result.
+Enter IQ and CGPA values and submit the form to view the prediction.
 
-## Run the Tests
+## Run Tests
 
-From the `model` directory, run:
+Run the test suite from the project directory:
 
 ```bash
-pytest
+python -m pytest
 ```
 
-## Deployment on Vercel
+The tests currently verify that the prediction function returns a supported result for representative high and low input values.
 
-This project includes a Vercel configuration through `vercel.json`.
+## Deploy to Vercel
 
-1. Install and sign in to the Vercel CLI, or connect the repository through the Vercel dashboard.
-2. Set the project root to the `model` directory if the repository contains other folders.
-3. If deploying with the included `models/model.pkl`, make sure the required scikit-learn dependency is listed in `requirements.txt` before deploying.
-4. Deploy the project:
+The repository is configured for Vercel using `vercel.json` and `api/index.py`.
 
-   ```bash
-   vercel
-   ```
+### Vercel Dashboard
 
-5. Follow the prompts provided by Vercel.
-6. Vercel uses `api/index.py` as the Python entry point and routes requests according to `vercel.json`.
+1. Push the repository to GitHub.
+2. Open [Vercel](https://vercel.com) and select **Add New Project**.
+3. Import the GitHub repository.
+4. Set the framework preset to **Other**.
+5. Leave the build command and output directory empty.
+6. If the repository contains an outer folder, set the project root to the folder containing `app.py`, `api/`, and `vercel.json`.
+7. Click **Deploy**.
 
-For production deployment, use:
+### Vercel CLI
+
+Install and sign in to the Vercel CLI:
+
+```bash
+npm install -g vercel
+vercel login
+```
+
+Deploy a preview version:
+
+```bash
+vercel
+```
+
+Deploy to production:
 
 ```bash
 vercel --prod
 ```
 
-## Application Flow
+Vercel installs the packages from `requirements.txt`, loads `api/index.py`, and routes requests according to `vercel.json`.
+
+## Model Behavior
+
+When a scikit-learn-compatible model is loaded, the application calls its `predict()` method with the two features in this order:
 
 ```text
-User enters IQ and CGPA
-          |
-          v
-Flask receives the POST request
-          |
-          v
-Application loads models/model.pkl,
-models/fallback_model.pkl, or creates a fallback model
-          |
-          v
-Prediction is calculated
-          |
-          v
-Placed / Not Placed is shown in the browser
+[IQ, CGPA]
 ```
 
-## Current Limitations
+The result is interpreted as:
 
-- The fallback model is threshold-based and is not a replacement for a properly trained model.
-- The current tests check the output format but do not yet assert specific predictions for each input.
-- IQ and CGPA alone are not sufficient features for a reliable placement prediction.
-- Input-range validation can be improved for values outside realistic IQ and CGPA ranges.
-- Pickle files should only be loaded from trusted sources.
+- `1` -> `Placed`
+- any other prediction -> `Not Placed`
 
-## Future Improvements
+The fallback model uses the following rule:
 
-- Train and save a real machine learning model using a properly prepared dataset.
-- Add more relevant features such as skills, internships, projects, communication ability, and academic history.
-- Add stronger input validation and user-friendly error messages.
-- Improve the test suite with exact expected predictions and route-level tests.
-- Add a clear model evaluation section with metrics such as accuracy, precision, recall, and F1-score.
-- Improve the user interface and add explanatory prediction details.
+```text
+Placed when IQ >= 95 and CGPA >= 7.0
+Not Placed otherwise
+```
 
-## Learning Reference
+## Limitations and Responsible Use
 
-The project was developed as part of my learning journey through CampusX YouTube content and the CampusX 100 Days of Machine Learning series. The tutorials provided the learning direction for understanding machine learning concepts, building a small application, and deploying it for practical use.
+- IQ and CGPA alone cannot reliably predict employment outcomes.
+- The fallback model is a threshold rule, not a validated production model.
+- Input validation does not yet enforce realistic IQ or CGPA ranges.
+- The current tests do not evaluate model accuracy or validate the complete browser workflow.
+- Pickle files can execute code during loading and must only be loaded from trusted sources.
+- The application should not be used to make real hiring, admissions, or academic decisions.
+
+## Potential Improvements
+
+- Train and evaluate a model using a documented dataset.
+- Add relevant features such as skills, internships, projects, communication, and academic history.
+- Add realistic range validation and clearer form-level error messages.
+- Add route tests for GET requests, POST requests, and invalid input.
+- Report evaluation metrics such as accuracy, precision, recall, and F1-score.
+- Add model versioning and metadata describing the training environment.
+- Improve accessibility and provide a clear explanation of each prediction.
+
+## Learning Context
+
+This project was created as an educational exercise while studying the machine learning workflow and Flask deployment process, including material from the CampusX YouTube tutorials and the CampusX 100 Days of Machine Learning series.
 
 ## License
 
-This project is available for educational and personal learning purposes. Add a license file if you plan to distribute or reuse it formally.
+This project is intended for educational and personal learning use. Review the repository's `LICENSE` file for the applicable terms.
