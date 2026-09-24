@@ -11,19 +11,15 @@ The application provides a web form where a user enters:
 - **IQ:** the student's intelligence quotient value
 - **CGPA:** the student's cumulative grade point average
 
-When the form is submitted, Flask receives the values, converts them to numbers, loads the available prediction model, and displays either `Placed` or `Not Placed`.
+When the form is submitted, Flask receives the values, converts them to numbers, loads the main prediction model, and displays either `Placed` or `Not Placed`. If the main model cannot be used, Flask displays an error instead.
 
-The application supports two model modes:
-
-1. It first attempts to load the trained model in `models/model.pkl`.
-2. If that model is unavailable, it loads `models/fallback_model.pkl`.
-3. If neither file exists, it creates a simple fallback model automatically.
+The application loads the model from `models/model.pkl`. If the model is unavailable or invalid, it displays an error instead of making a prediction.
 
 ## Features
 
 - Browser-based prediction form
 - Flask backend with GET and POST handling
-- Serialized model loading with a fallback option
+- Serialized model loading with an explicit error when the model is unavailable
 - Input conversion and basic invalid-input handling
 - Separate HTML templates and CSS assets
 - Automated tests using pytest
@@ -38,7 +34,6 @@ model/
 |   `-- index.py
 |-- models/
 |   |-- model.pkl
-|   `-- fallback_model.pkl
 |-- static/
 |   `-- style.css
 |-- templates/
@@ -60,7 +55,7 @@ The main Flask application.
 - Defines the `/` route for displaying and processing the form.
 - Reads IQ and CGPA values from the submitted form.
 - Calls `predict_placement()` to produce a prediction.
-- Loads the trained or fallback model through `load_model()`.
+- Loads the main model through `load_model()`.
 - Renders `templates/index.html` with the prediction result.
 - Starts a local development server when executed directly.
 
@@ -78,16 +73,7 @@ This folder stores the serialized prediction models used by the application.
 
 #### `models/model.pkl`
 
-An optional serialized model artifact retained in the repository. The current application intentionally does not use unsupported model objects from this file because the previous artifact produced incorrect results for low inputs. The loader accepts only the documented threshold-model dictionary and otherwise uses `fallback_model.pkl`.
-
-#### `models/fallback_model.pkl`
-
-A lightweight fallback model stored with Python's `pickle` module. It contains the default thresholds used when a trained model is not available:
-
-- IQ threshold: `95`
-- CGPA threshold: `7.0`
-
-The fallback predicts `Placed` when both values meet or exceed their thresholds. It predicts `Not Placed` otherwise.
+The serialized model used for predictions. If it is missing, unreadable, or has an unsupported format, the application displays a model error and does not predict.
 
 ### `templates/`
 
@@ -148,7 +134,7 @@ User submits IQ and CGPA
 The / route validates and converts the input
           |
           v
-load_model() loads model.pkl or a fallback model
+load_model() loads model.pkl
           |
           v
 predict_placement() calculates the result
@@ -257,17 +243,19 @@ Vercel installs the packages from `requirements.txt`, loads `api/index.py`, and 
 
 ## Model Behavior
 
-The fallback model uses the following rule:
+The application supports either a threshold dictionary containing `threshold_iq` and `threshold_cgpa`, or a scikit-learn model exposing `predict()` with `[IQ, CGPA]` input:
 
 ```text
 Placed when IQ >= 95 and CGPA >= 7.0
 Not Placed otherwise
 ```
 
+The checked-in `models/model.pkl` is a scikit-learn `LogisticRegression` artifact, so it is loaded through `predict()`. Its output label `1` is displayed as `Placed`; other labels are displayed as `Not Placed`.
+
 ## Limitations and Responsible Use
 
 - IQ and CGPA alone cannot reliably predict employment outcomes.
-- The fallback model is a threshold rule, not a validated production model.
+- The supported threshold rule is not a validated production model.
 - Input validation does not yet enforce realistic IQ or CGPA ranges.
 - The current tests do not evaluate model accuracy or validate the complete browser workflow.
 - Pickle files can execute code during loading and must only be loaded from trusted sources.

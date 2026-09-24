@@ -4,12 +4,12 @@ This repository contains a Flask web application that estimates a student's plac
 
 ## What the Project Does
 
-The application provides a browser form for entering IQ and CGPA values. Flask processes the submitted values and returns one of two results:
+The application provides a browser form for entering IQ and CGPA values. Flask processes the submitted values and returns one of two results when a compatible model is available:
 
-- `Placed` when IQ is at least `95` and CGPA is at least `7.0`
-- `Not Placed` when either value is below its threshold
+- `Placed` when the loaded model returns class `1`
+- `Not Placed` when the loaded model returns another class
 
-The threshold behavior is intentional and is used as the reliable fallback model for the current application.
+The application uses only the main serialized model. It supports a threshold dictionary or a scikit-learn model with `predict()`. If the model is missing, unreadable, or incompatible, the page shows an error instead of making a prediction.
 
 ## Project Structure
 
@@ -32,7 +32,7 @@ IQ and placement/
 
 ### `model/app.py`
 
-Creates the Flask application, handles the home page form, converts submitted values to numbers, loads a supported model, and calculates the prediction. Unsupported serialized model objects are ignored so they cannot override the reliable fallback behavior.
+Creates the Flask application, handles the home page form, converts submitted values to numbers, loads the main model, and calculates the prediction. If the model cannot be loaded, the page shows an error and does not make a prediction.
 
 ### `model/api/index.py`
 
@@ -40,7 +40,7 @@ Imports the Flask app for Vercel deployment.
 
 ### `model/models/`
 
-Contains the serialized model artifacts. The application uses a dictionary containing `threshold_iq` and `threshold_cgpa`. If the primary artifact is incompatible, the application uses `fallback_model.pkl` instead.
+Contains the serialized model artifact. The application supports a dictionary with `threshold_iq` and `threshold_cgpa` values or a scikit-learn model with `predict()`.
 
 ### `model/templates/index.html`
 
@@ -52,7 +52,7 @@ Contains the application's layout and visual styles.
 
 ### `model/tests/test_app.py`
 
-Checks high, low, and minimum input cases. In particular, `5,5` must return `Not Placed`.
+Checks high, low, and minimum input cases, plus the model-error page behavior. In particular, `5,5` must return `Not Placed` when the test model is available.
 
 ### `model/requirements.txt`
 
@@ -83,7 +83,7 @@ python -m pytest
 
 ## Deploy to Vercel
 
-Import the GitHub repository into Vercel and set the project root to `model`. Use the **Other** framework preset, leave the build and output fields empty, and deploy. Vercel uses `model/vercel.json` and `model/api/index.py` to serve the Flask application.
+Import the GitHub repository into Vercel and set the project root to `model`. Use the **Other** framework preset, leave the build and output fields empty, and deploy. Vercel uses `model/vercel.json` and `model/api/index.py` to serve the Flask application. Confirm that `models/model.pkl` is a supported threshold-model dictionary before deploying.
 
 ## Disclaimer
 

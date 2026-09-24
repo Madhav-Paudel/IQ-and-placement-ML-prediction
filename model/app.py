@@ -6,40 +6,44 @@ app = Flask(__name__)
 
 MODELS_PATH = Path(__file__).resolve().parent / "models"
 MODEL_PATH = MODELS_PATH / "model.pkl"
-FALLBACK_MODEL_PATH = MODELS_PATH / "fallback_model.pkl"
 
 
-def train_model():
-    model = {"threshold_iq": 95, "threshold_cgpa": 7.0}
-    with open(FALLBACK_MODEL_PATH, "wb") as f:
-        pickle.dump(model, f)
-    return model
+class ModelLoadError(Exception):
+    pass
 
 
 def load_model():
-    if MODEL_PATH.exists():
+    if not MODEL_PATH.exists():
+        raise ModelLoadError("The main model is unavailable.")
+
+    try:
         with open(MODEL_PATH, "rb") as f:
             model = pickle.load(f)
-        if isinstance(model, dict):
-            return model
+    except (OSError, pickle.PickleError, EOFError, ImportError, AttributeError) as error:
+        raise ModelLoadError("The main model could not be loaded.") from error
 
-    if FALLBACK_MODEL_PATH.exists():
-        with open(FALLBACK_MODEL_PATH, "rb") as f:
-            fallback_model = pickle.load(f)
-        if isinstance(fallback_model, dict):
-            return fallback_model
+    if isinstance(model, dict):
+        if not {"threshold_iq", "threshold_cgpa"}.issubset(model):
+            raise ModelLoadError("The main model has an invalid format.")
+    elif not callable(getattr(model, "predict", None)):
+        raise ModelLoadError("The main model has an invalid format.")
 
-    return train_model()
+    return model
 
 
 def predict_placement(iq, cgpa):
     model = load_model()
 
-    iq_threshold = model["threshold_iq"]
-    cgpa_threshold = model["threshold_cgpa"]
-    if iq >= iq_threshold and cgpa >= cgpa_threshold:
-        return "Placed"
-    return "Not Placed"
+    if isinstance(model, dict):
+        iq_threshold = model["threshold_iq"]
+        cgpa_threshold = model["threshold_cgpa"]
+        return "Placed" if iq >= iq_threshold and cgpa >= cgpa_threshold else "Not Placed"
+
+    try:
+        prediction = model.predict([[iq, cgpa]])
+        return "Placed" if int(prediction[0]) == 1 else "Not Placed"
+    except (IndexError, TypeError, ValueError, AttributeError) as error:
+        raise ModelLoadError("The main model could not make a prediction.") from error
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -49,6 +53,8 @@ def index():
             iq = float(request.form["iq"])
             cgpa = float(request.form["cgpa"])
             result = predict_placement(iq, cgpa)
+        except ModelLoadError as error:
+            result = str(error)
         except Exception:
             result = "Please enter valid numbers"
     return render_template("index.html", result=result)
